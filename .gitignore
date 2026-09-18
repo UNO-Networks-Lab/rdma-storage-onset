@@ -1,0 +1,4 @@
+# raw logs ship on Zenodo, not in git (see README)
+data/
+__pycache__/
+*.pyc

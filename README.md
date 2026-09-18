@@ -21,12 +21,9 @@ directly from the raw per-operation logs. The raw logs are too large for git
 
 ## Data
 
-Download the archive from Zenodo and unpack it so that the run directories sit
-under `data/testbed/`:
-
-```
-DOI: to be added on publication of the Zenodo record
-```
+Download `dsscc-icnc-data.tar.gz` (619 MB) from Zenodo,
+[doi:10.5281/zenodo.22838017](https://doi.org/10.5281/zenodo.22838017), and unpack
+it so that the run directories sit under `data/testbed/`:
 
 ```bash
 mkdir -p data && tar -xzf dsscc-icnc-data.tar.gz -C data

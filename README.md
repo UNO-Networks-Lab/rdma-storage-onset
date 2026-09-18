@@ -30,7 +30,7 @@ DOI: to be added on publication of the Zenodo record
 
 ```bash
 mkdir -p data && tar -xzf dsscc-icnc-data.tar.gz -C data
-sha256sum -c data/SHA256SUMS
+(cd data && sha256sum -c --quiet SHA256SUMS) && echo verified
 ```
 
 `data/` is git-ignored.

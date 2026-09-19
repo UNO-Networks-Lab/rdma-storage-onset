@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RDMA Storage Onset</title>
+<meta name="description" content="A sharp but configuration-dependent loss-recovery onset in closed-loop RDMA storage fabrics: code, raw data, and how to reproduce every table.">
+<style>
+  :root {
+    --bg: #fbfbfa; --surface: #ffffff; --text: #1d1d1f; --muted: #5f6368;
+    --border: #e3e3e0; --accent: #1f5fa8; --accent-ink: #ffffff;
+    --code-bg: #f3f3f1; --chip: #eef3fa;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #111214; --surface: #1a1b1e; --text: #e8e8ea; --muted: #a0a4ab;
+      --border: #2c2e33; --accent: #7fb0ec; --accent-ink: #0d1117;
+      --code-bg: #202226; --chip: #1c2533;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #111214; --surface: #1a1b1e; --text: #e8e8ea; --muted: #a0a4ab;
+    --border: #2c2e33; --accent: #7fb0ec; --accent-ink: #0d1117;
+    --code-bg: #202226; --chip: #1c2533;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  body {
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  main { max-width: 860px; margin: 0 auto; padding: 48px 16px 64px; }
+  header { text-align: center; margin-bottom: 36px; }
+  h1 { font-size: clamp(1.6rem, 4vw, 2.3rem); line-height: 1.2; margin: 0 0 18px; letter-spacing: -0.01em; }
+  .authors { font-size: 1.05rem; margin: 0 0 6px; }
+  .authors sup { color: var(--muted); }
+  .affil { color: var(--muted); font-size: 0.92rem; margin: 2px 0; }
+  .venue { margin-top: 14px; display: inline-block; background: var(--chip); color: var(--text);
+           border: 1px solid var(--border); border-radius: 999px; padding: 3px 12px; font-size: 0.88rem; }
+  .links { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 22px; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
+         background: var(--accent); color: var(--accent-ink); padding: 9px 16px;
+         border-radius: 8px; font-weight: 600; font-size: 0.95rem; }
+  .btn.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+  .btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  section { margin-top: 40px; }
+  h2 { font-size: 1.3rem; margin: 0 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+  p { margin: 0 0 12px; }
+  .tldr { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--accent);
+          border-radius: 8px; padding: 14px 18px; }
+  figure { margin: 0; }
+  .fig { background: #ffffff; border: 1px solid var(--border); border-radius: 8px; padding: 10px; }
+  .fig img { width: 100%; height: auto; display: block; }
+  figcaption { color: var(--muted); font-size: 0.9rem; margin-top: 8px; }
+  ol.findings { padding-left: 20px; margin: 0; }
+  ol.findings li { margin-bottom: 10px; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px;
+        padding: 12px 14px; overflow-x: auto; font-size: 0.86rem; line-height: 1.5; margin: 0 0 12px; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  p code, li code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-size: 0.88em; }
+  a { color: var(--accent); }
+  footer { margin-top: 48px; color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--border); padding-top: 16px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>A Sharp but Configuration-Dependent Loss-Recovery Onset in Closed-Loop RDMA Storage Fabrics</h1>
+    <p class="authors">Haoyu Wang<sup>&dagger;</sup>, Bang Tran<sup>&Dagger;</sup>, Peng Jiang<sup>*</sup>, Xiaoqian Zhang<sup>*</sup></p>
+    <p class="affil"><sup>*</sup>College of Information Science &amp; Technology, University of Nebraska Omaha</p>
+    <p class="affil"><sup>&dagger;</sup>Department of Computer Science, University of Massachusetts Boston</p>
+    <p class="affil"><sup>&Dagger;</sup>Mathematics and Computer Science Department, Assumption University</p>
+    <span class="venue">Submitted to ICNC 2027</span>
+    <nav class="links" aria-label="Artifact links">
+      <a class="btn" href="https://github.com/UNO-Networks-Lab/rdma-storage-onset">Code on GitHub</a>
+      <a class="btn secondary" href="https://doi.org/10.5281/zenodo.22838017">Raw data (Zenodo)</a>
+    </nav>
+  </header>
+
+  <section>
+    <p class="tldr"><strong>In short:</strong> on a lossy RoCEv2 fabric, NVMe-oF storage clients do not
+    degrade gradually as load rises. One 4&nbsp;MiB step in admitted bytes leaves the 99th-percentile
+    write latency near 30&nbsp;ms but moves the maximum from 36&nbsp;ms to 4.25&nbsp;s. Where that
+    cliff sits depends on how the work is grouped, so a safe bound measured in one configuration does
+    not transfer to another.</p>
+  </section>
+
+  <section>
+    <h2>Abstract</h2>
+    <p>On a lossy 25&nbsp;GbE NVMe-oF testbed, closed-loop storage clients do not degrade
+    gracefully&mdash;they collapse. One 4&nbsp;MiB step in admitted flush bytes leaves the
+    99th-percentile write latency unchanged near 30&nbsp;ms while moving the maximum from 36&nbsp;ms to
+    4.25&nbsp;s, and at &asymp;&nbsp;20&nbsp;ms sampling the subcritical point moves no counter at all.
+    Admitted bytes alone do not separate the outcomes. With the per-initiator policy held identical,
+    27&nbsp;MiB is clean at 2:1 fan-in and shows transport loss at 3:1; and with admitted bytes, inferred
+    constituent-command count and command size all fixed, regrouping the budget into more and smaller
+    application writes breaks a fabric that was otherwise quiet. What matters is how a fixed budget is
+    grouped across writes and across initiators, so a bound measured in one configuration does not
+    transfer to another. A decentralized floor of one write in flight per initiator&mdash;the smallest
+    grant such a policy expresses&mdash;still crosses the onset as hosts are added. The onset also cannot
+    be found by an error-only learner without crossing it, since nothing it can read moves below.</p>
+  </section>
+
+  <section>
+    <h2>The onset</h2>
+    <figure>
+      <div class="fig"><img src="fig1.png" width="1540" height="440"
+        alt="Three panels against admitted flush bytes. (a) Completion rate peaks at 20 MiB and declines above it. (b) The share of flush operations over one second is zero up to 20 MiB, then appears at 24 MiB and rises. (c) The 99th percentile stays flat near 30 ms at every load, while the maximum jumps from 36 ms to 4.25 s at the first step past 20 MiB."></div>
+      <figcaption>Sweeping admitted flush bytes at 4:1 fan-in. The shaded band is the measured clean
+      region. The 99th percentile is flat at every load; the maximum jumps 116&times; at the first
+      supercritical step.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Findings</h2>
+    <ol class="findings">
+      <li><strong>The onset is sharp, and its stalls are recovery-timescale.</strong> Bulk upper
+      percentiles stay flat across the transition while the maximum jumps 116&times;. The stalls are
+      multi-second and clustered, consistent with timeout-driven recovery.</li>
+      <li><strong>The safe envelope is not a single aggregate.</strong> Regrouping the same admitted
+      bytes into more and smaller application writes, or spreading the same per-initiator policy over
+      more initiators, changes the outcome. A bound measured in one configuration does not transfer.</li>
+      <li><strong>A decentralized admission floor cannot hold the envelope as hosts are added.</strong>
+      One write in flight per initiator is the smallest grant such a policy can express, and it still
+      crosses the onset once enough hosts join.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Reproduce the tables</h2>
+    <p>Every table in the paper is regenerated by one script from the raw per-operation logs.</p>
+    <pre><code>git clone https://github.com/UNO-Networks-Lab/rdma-storage-onset
+cd rdma-storage-onset
+# download dsscc-icnc-data.tar.gz from doi:10.5281/zenodo.22838017, then:
+mkdir -p data &amp;&amp; tar -xzf dsscc-icnc-data.tar.gz -C data
+(cd data &amp;&amp; sha256sum -c --quiet SHA256SUMS) &amp;&amp; echo verified
+pip install matplotlib
+PAPER_DIR=out python3 plot_boundary.py</code></pre>
+    <p>The measurements used CloudLab <code>c6525-25g</code> nodes (ConnectX-5, 25&nbsp;GbE) with all
+    nodes on one switch. The repository's README explains how to rerun the experiments.</p>
+  </section>
+
+  <section>
+    <h2>Cite the data</h2>
+    <pre><code>@dataset{wang_2026_22838017,
+  author    = {Wang, Haoyu and Tran, Bang and Jiang, Peng and Zhang, Xiaoqian},
+  title     = {Raw measurement logs for "A Sharp but Configuration-Dependent
+               Loss-Recovery Onset in Closed-Loop RDMA Storage Fabrics"},
+  year      = {2026},
+  publisher = {Zenodo},
+  version   = {1.0},
+  doi       = {10.5281/zenodo.22838017},
+  url       = {https://doi.org/10.5281/zenodo.22838017}
+}</code></pre>
+  </section>
+
+  <footer>
+    This material is based upon work supported by the National Science Foundation under Grant
+    No.&nbsp;CNS-2450832. Any opinions, findings, and conclusions or recommendations expressed in this
+    material are those of the author(s) and do not necessarily reflect the views of the National
+    Science Foundation.
+  </footer>
+</main>
+</body>
+</html>

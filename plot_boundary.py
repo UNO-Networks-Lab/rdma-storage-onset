@@ -696,10 +696,11 @@ def fig7():
 def table3_makespan():
     """Batch makespan: work identical by construction, shared start barrier.
 
-    Reads the 12-repetition barrier campaign (ms-barrier) rather than the
-    earlier 8-repetition run. Two reasons: makespan is measured from a shared
-    epoch rather than per-process wall clocks, and 12 reps support bootstrap
-    intervals. Report the interval -- the ratio's uncertainty is dominated
+    Reads the 12-repetition randomised-order barrier campaign (ms-rand). The
+    earlier ms-barrier campaign ran its arms in a fixed blocked order, so policy
+    and run position were collinear; MS_SRC=ms-barrier still reproduces it.
+    Makespan is measured from a shared epoch rather than per-process wall
+    clocks, and 12 reps support bootstrap intervals. Report the interval -- the ratio's uncertainty is dominated
     entirely by the ungated arm, whose cv is ~200x the gated arm's, so any
     single-campaign point estimate of it is worth about +/-0.25.
 
@@ -711,7 +712,7 @@ def table3_makespan():
     number that looks fine.
     """
     N, S = 3, 4
-    SRC = os.environ.get("MS_SRC", "ms-barrier")
+    SRC = os.environ.get("MS_SRC", "ms-rand")
     ARMS = (("baseline", 8), ("cas-k4", 4), ("cas-k2", 2), ("cas-k1", 1))
     rows, work, raw = [], set(), {}
     for arm, k in ARMS:

@@ -21,13 +21,17 @@ directly from the raw per-operation logs. The raw logs are too large for git
 
 ## Data
 
-Download `dsscc-icnc-data.tar.gz` (619 MB) from Zenodo,
-[doi:10.5281/zenodo.22838017](https://doi.org/10.5281/zenodo.22838017), and unpack
-it so that the run directories sit under `data/testbed/`:
+Download both archives from Zenodo,
+[doi:10.5281/zenodo.22838016](https://doi.org/10.5281/zenodo.22838016) (resolves to
+the latest version): `dsscc-icnc-data.tar.gz` (619 MB, every campaign) and
+`dsscc-icnc-data-msrand.tar.gz` (8 MB, the randomised-order batch campaign added
+in version 1.1). Unpack both so that the run directories sit under `data/testbed/`:
 
 ```bash
-mkdir -p data && tar -xzf dsscc-icnc-data.tar.gz -C data
-(cd data && sha256sum -c --quiet SHA256SUMS) && echo verified
+mkdir -p data
+tar -xzf dsscc-icnc-data.tar.gz -C data
+tar -xzf dsscc-icnc-data-msrand.tar.gz -C data
+(cd data && sha256sum -c --quiet SHA256SUMS && sha256sum -c --quiet SHA256SUMS-ms-rand) && echo verified
 ```
 
 `data/` is git-ignored.
@@ -55,7 +59,8 @@ emit a table otherwise.
 | §VI-A: reactive controller | `controller-hi/` | `run-controller.sh` |
 | §VI: supplied bound vs AIMD | `target-informed/`, `adaptive-demo/` | `run-target-informed.sh`, `run-adaptive-demo.sh` |
 | §VI-B: scaling limit | `p1-s8/` (with `p1-s2/`, `p1-s4/`) | — |
-| §VII: batch completion | `ms-barrier/` | `run-makespan.sh` |
+| §VII: batch completion (randomised order) | `ms-rand/` | `L=0 BARRIER=1 run-makespan.sh` |
+| earlier fixed-order batch campaign (`MS_SRC=ms-barrier`) | `ms-barrier/` | `L=0 BARRIER=1 run-makespan.sh` |
 
 ## Running the experiments
 
@@ -68,7 +73,7 @@ one congestion point are not comparable.
 export USER_CL=<your CloudLab username>
 export KEY=~/.ssh/<your CloudLab key>
 hw-cas/incast-setup.sh <experiment-hostname-suffix> 3
-KLIST="1 2 4" SEED=example hw-cas/run-makespan.sh <suffix> data/testbed/my-run 3 4194304 3800 12
+L=0 BARRIER=1 KLIST="1 2 4" SEED=example hw-cas/run-makespan.sh <suffix> data/testbed/my-run 3 4194304 3800 12
 ```
 
 The drivers stop if `USER_CL` is unset rather than guessing an account. Runs

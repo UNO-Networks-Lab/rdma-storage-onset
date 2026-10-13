@@ -52,14 +52,14 @@ emit a table otherwise.
 | Paper | Data under `data/testbed/` | Driver |
 |---|---|---|
 | Fig. 1, §III: the onset at 4:1 | `collapse-boundary/A_agg*` | `run-collapse-boundary.sh` |
-| §V: stall durations, ramp | `collapse-boundary/` | `run-collapse-boundary.sh` |
+| §III: stall durations, ramp, sampled counters | `collapse-boundary/` | `run-collapse-boundary.sh` |
 | Table I, §IV-A: fan-in | `fanin/`, `fine-n2/`, `fine-n3/` | `run-fanin.sh` |
 | Table II, §IV-B: grouping | `isolate/`, `isolate-n3/` | `run-isolate.sh`, `run-isolate-n3.sh` |
-| §VI: notification lead time | `cnp/` | `run-cnp.sh`, `analyze-cnp.py` |
-| §VI-A: reactive controller | `controller-hi/` | `run-controller.sh` |
-| §VI: supplied bound vs AIMD | `target-informed/`, `adaptive-demo/` | `run-target-informed.sh`, `run-adaptive-demo.sh` |
-| §VI-B: scaling limit | `p1-s8/` (with `p1-s2/`, `p1-s4/`) | — |
-| §VII: batch completion (randomised order) | `ms-rand/` | `L=0 BARRIER=1 run-makespan.sh` |
+| §V-B: notification lead time | `cnp/` | `run-cnp.sh`, `analyze-cnp.py` |
+| §V-B: reactive controller | `controller-hi/` | `run-controller.sh` |
+| §V-B: supplied bound vs AIMD | `target-informed/`, `adaptive-demo/` | `run-target-informed.sh`, `run-adaptive-demo.sh` |
+| §V-A: scaling limit | `p1-s8/` (with `p1-s2/`, `p1-s4/`) | — |
+| §VI: batch completion (randomised order) | `ms-rand/` | `L=0 BARRIER=1 run-makespan.sh` |
 | earlier fixed-order batch campaign (`MS_SRC=ms-barrier`) | `ms-barrier/` | `L=0 BARRIER=1 run-makespan.sh` |
 
 ## Running the experiments

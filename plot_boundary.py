@@ -916,6 +916,15 @@ def _maxlat(rundir):
     return v[-1] / 1e6 if v else float("nan")
 
 
+def _maxlat_any(rundir):
+    """Maximum over BOTH classes: the worst operation the application saw. Added
+    2026-10-12: the flush-only maximum hid the append-class stalls (every run with
+    an ACK timeout has an append write over 2.8 s while its flush maximum reads
+    ~0.1 s), which the fan-in table must not do."""
+    v = lat(rundir, None)
+    return v[-1] / 1e6 if v else float("nan")
+
+
 def table5_fanin():
     """The safe envelope is not one aggregate: it moves with fan-in.
 
@@ -936,7 +945,7 @@ def table5_fanin():
             for r in runs:
                 rel = os.path.join("fanin", os.path.basename(r))
                 a, q = _retx_classes(rel)
-                acks.append(a); seqs.append(q); mx.append(_maxlat(rel))
+                acks.append(a); seqs.append(q); mx.append(_maxlat_any(rel))
             cells[N] = (mean(acks), mean(seqs), max(mx), len(runs))
         if cells:
             rows.append((phi, cells))
